@@ -58,6 +58,21 @@ class Fea_process():
         else:
             return None
 
+    def cost_time_(self, record):
+        # 去除同一天内,出口时间小于入口时间 ,return:None 出口时间小于入口时间,1:进出小于5分钟,进出大于5分钟
+        en_time = str(record['N_EN_DATE']) + str(record['N_EN_TIME']).zfill(6)
+        ex_time = str(record['N_EX_DATE']) + str(record['N_EX_TIME']).zfill(6)
+        try:
+            en_time = datetime.datetime.strptime(en_time, '%Y%m%d%H%M%S')
+            ex_time = datetime.datetime.strptime(ex_time, '%Y%m%d%H%M%S')
+            cost_time = (ex_time - en_time).total_seconds()/3600
+        except:
+            print('turn_around error ', ValueError)
+            return None
+
+        return cost_time
+
+
     def over_weight_(self,record):
         #总载重与行驶距离异常，如return 1:里程30公里以下，总重大于轴限的80%；
         # return None : D_FARE2不存在
@@ -70,6 +85,7 @@ class Fea_process():
             return 1
         else:
             return 0
+
     def light_weight_(self,record):
         #总载重与行驶距离异常，return 1: 如里程100公里以上，总重小于轴限的30%；
         # return None : D_FARE2不存在
@@ -147,6 +163,12 @@ class Fea_process():
             return None
         return record['D_OVER_WEIGHT']
 
+    def speed_(self,cost_time,fee_length):
+        if cost_time==0:
+            print('cost_time is 0,exit')
+            return None
+        return float(fee_length)/float(cost_time)
+
 
 
 
@@ -156,6 +178,7 @@ class Fea_process():
         turn_around = self.turn_around_(record)
         over_weight = self.over_weight_(record)
         light_weight = self.light_weight_(record)
+        over_weight_original = self.over_weight_original_(record)
         if (lab!=None and turn_around!=None and over_weight!=None and light_weight!=None and over_weight_original!=None):
             #record_list = list(lab)
             axis_number = self.axis_number_(record)
@@ -165,8 +188,9 @@ class Fea_process():
             lost_marks = self.lost_marks_(record)
             fee_length = self.fee_length_(record)
             weight = self.weight_(record)
-            over_weight_original = self.over_weight_original_(record)
-            fea_list = [lab,turn_around,vehicle_class,over_weight,light_weight,over_delay,axis_number,strange_marks,lost_marks,fee_length,weight,over_weight_original]
+            cost_time = self.cost_time_(record)
+            speed = self.speed_(cost_time,fee_length)
+            fea_list = [lab,turn_around,vehicle_class,over_weight,light_weight,over_delay,axis_number,strange_marks,lost_marks,fee_length,weight,over_weight_original,cost_time,speed]
 
             for fea in fea_list:
                 record_list.append(fea)
