@@ -22,11 +22,11 @@ class Fea_process():
                         same_pos +=1
                 if same_pos == 4:
                     #print(en_licnese,ex_license)
-                    return 0#,en_licnese,ex_license
+                    return 0,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
 
-            return 1#,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
+            return 1,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
 
-        return 0#,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
+        return 0,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
 
     def axis_number_(self,record):
         #轴载类型
@@ -37,29 +37,47 @@ class Fea_process():
             return 0
         #return str(record['axis_number'])
 
-    def turn_around_(self,record):
-        #去除同一天内,出口时间小于入口时间 ,return:None 出口时间小于入口时间,1:进出小于5分钟,进出大于5分钟
-        en_time = str(record['N_EN_DATE']) + str(record['N_EN_TIME']).zfill(6)
-        ex_time = str(record['N_EX_DATE']) + str(record['N_EX_TIME']).zfill(6)
-        try:
-            en_time = datetime.datetime.strptime(en_time,'%Y%m%d%H%M%S')
-            ex_time = datetime.datetime.strptime(ex_time,'%Y%m%d%H%M%S')
-            cost_time = (ex_time-en_time).total_seconds()
-        except:
-            print('turn_around error ',ValueError)
-            return None
-        if cost_time>0:
-            if cost_time<300:
-                #print(cost_time)
-                return 1
+    def turn_around_(self,record,last_record):
+        # 5分钟内出现某站出同站入的情况
+        # return : None 下一次入口时间小于或等于上一次出口时间,
+        # return :1 小于5分钟
+        # renturn :0 大于5分钟
+        if last_record:
+            #print(last_record)
+            last_ex_date, last_ex_station, last_ex_license = str(last_record['N_EX_DATE']) + str(last_record['N_EN_TIME']).zfill(6), str(last_record['N_EX_LANE_ID'])[0:4], \
+                                                             last_record['C_EX_LICENSE']
+
+            if str(record['N_EN_STATION_ID']) == last_ex_station and record['C_CARD_LICENSE'][0:7]==last_ex_license[0:7]:
+                en_time = str(record['N_EN_DATE']) + str(record['N_EN_TIME']).zfill(6)
+                #ex_time = str(record['N_EX_DATE']) + str(record['N_EX_TIME']).zfill(6)
+                try:
+                    en_time = datetime.datetime.strptime(en_time,'%Y%m%d%H%M%S')
+                    last_ex_date = datetime.datetime.strptime(last_ex_date,'%Y%m%d%H%M%S')
+                    cost_time = (en_time-last_ex_date).total_seconds()
+                except:
+                    print('turn_around error ',ValueError)
+                    return None
+                if cost_time>0:
+                    if cost_time<300:
+                        print('cost_time<300',record['C_CARD_LICENSE'],last_ex_license,record['N_EN_STATION_ID'],last_ex_station,en_time,last_ex_date,cost_time)
+                        return 1
+                    else:
+                        print('cost_time >300')
+                        return 0
+                else:
+                    print('cost_time <0',record['C_CARD_LICENSE'],last_ex_license,record['N_EN_STATION_ID'],last_ex_station,en_time,last_ex_date,cost_time)
+                    return None
             else:
+                #print('NO TURN AROUND')
                 return 0
-            return cost_time
         else:
             return None
 
+        # 同一天内或者同一月内,车辆进出次数,放到最后pandas里面去统计出口车牌即可。
+        return
+
     def cost_time_(self, record):
-        # 去除同一天内,出口时间小于入口时间 ,return:None 出口时间小于入口时间,1:进出小于5分钟,进出大于5分钟
+        # 进出口用时
         en_time = str(record['N_EN_DATE']) + str(record['N_EN_TIME']).zfill(6)
         ex_time = str(record['N_EX_DATE']) + str(record['N_EX_TIME']).zfill(6)
         try:
@@ -77,6 +95,7 @@ class Fea_process():
         #总载重与行驶距离异常，如return 1:里程30公里以下，总重大于轴限的80%；
         # return None : D_FARE2不存在
         if record['D_FARE2'] <=0:
+            print('D_FRE2 <=0:',record['D_FARE2'] )
             return None
         weight = float(record['D_WEIGHT'])
         fee_lenth =  float(record['D_FEE_LENGTH'])
@@ -91,6 +110,8 @@ class Fea_process():
         # return None : D_FARE2不存在
 
         if record['D_FARE2'] <= 0:
+            print('D_FRE2 <=0_:',record['D_FARE2'] )
+
             return None
         weight = float(record['D_WEIGHT'])
         fee_lenth = float(record['D_FEE_LENGTH'])
@@ -160,22 +181,23 @@ class Fea_process():
 
     def over_weight_original_(self, record):
         if record['D_OVER_WEIGHT'] >100:
+            print('big than 100:',record['D_OVER_WEIGHT'] )
             return None
         return record['D_OVER_WEIGHT']
 
     def speed_(self,cost_time,fee_length):
-        if cost_time==0:
-            print('cost_time is 0,exit')
+        if cost_time==0 or cost_time==None :
+            print('cost_time is 0 or None,exit')
             return None
         return float(fee_length)/float(cost_time)
 
 
 
 
-    def make_row(self,record):
+    def make_row(self,record,last_record):
         record_list = []
         lab = self.label_(record)
-        turn_around = self.turn_around_(record)
+        turn_around = self.turn_around_(record,last_record)
         over_weight = self.over_weight_(record)
         light_weight = self.light_weight_(record)
         over_weight_original = self.over_weight_original_(record)
@@ -183,17 +205,23 @@ class Fea_process():
             #record_list = list(lab)
             axis_number = self.axis_number_(record)
             over_delay = self.over_delay_(record)
-            vehicle_class = self.vehicle_class_(record)
+            #vehicle_class = self.vehicle_class_(record)
             strange_marks = self.strange_marks_(record)
             lost_marks = self.lost_marks_(record)
             fee_length = self.fee_length_(record)
             weight = self.weight_(record)
             cost_time = self.cost_time_(record)
             speed = self.speed_(cost_time,fee_length)
-            fea_list = [lab,turn_around,vehicle_class,over_weight,light_weight,over_delay,axis_number,strange_marks,lost_marks,fee_length,weight,over_weight_original,cost_time,speed]
+            fea_list = [lab,record['C_EN_VEHICLE_CLASS'],record['C_EX_VEHICLE_CLASS'],turn_around,strange_marks,lost_marks,over_weight,light_weight,over_delay,record['axis_number'],
+                        fee_length,weight,over_weight_original,cost_time,speed]
 
             for fea in fea_list:
-                record_list.append(fea)
+                if isinstance(fea,tuple):
+                    for value in fea:
+                        record_list.append(value)
+                else:
+
+                    record_list.append(fea)
             new_record = ','.join([str(value) for value in record_list])+'\n'
             return new_record
         else:
@@ -210,7 +238,8 @@ def make_samples():
     cur_exit =con_exit.cursor()
     fw = open("samples.txt", "w")
     for date in data_list:
-        sql_exit =  "select {columns} from  exit_jour  a left  join entry_jour b " \
+        sql_exit =  "select {columns} from  exit_jour  a " \
+                    "left  join entry_jour b " \
                     "on a.N_EN_DATE = b.N_EN_DATE and a.N_CARD_LANE_ID = b.N_EN_LANE_ID and a.N_CARD_SERIAL_NO = b.N_EN_SERIAL_NO " \
                     "left join (select exit_jour.C_CARD_LICENSE,count(distinct N_AXIS_TYPE) axis_number from exit_jour left join axis_jour " \
                     "on exit_jour.N_EN_DATE=axis_jour.N_DATE and exit_jour.N_EX_LANE_ID=axis_jour.N_LANE_ID " \
@@ -227,6 +256,7 @@ def make_samples():
                     "and a.N_EX_DATE >= a.N_EN_DATE " \
                     "and a.C_EX_LICENSE regexp '^[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新台港澳]{{1}}[A-Z]{{1}}.*$' " \
                     "and a.C_CARD_LICENSE regexp '^[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新台港澳]{{1}}[A-Z]{{1}}.*$' " \
+                    "ORDER  by a.C_CARD_LICENSE,a.N_EN_TIME " \
                     "{limit}".format(start_date=date,end_date=date,start_date1=date,end_date1=date,
 
                                      columns='a.N_EN_DATE,a.N_EN_TIME,a.N_EN_STATION_ID,a.C_EN_VEHICLE_CLASS,a.N_EX_DATE,a.N_EX_TIME,'\
@@ -235,7 +265,7 @@ def make_samples():
                                              'a.D_FARE2,a.VC_MARKS,a.VC_FIX_MARKS,b.C_EN_VEHICLE_CLASS,c.axis_number',
 
 
-                                     limit = ''
+                                     limit = 'limit 1000'
                                      )
 
         print(sql_exit)
@@ -245,8 +275,11 @@ def make_samples():
         cur_exit.execute(sql_exit)
         fea = Fea_process()
         result = cur_exit.fetchall()
-        for record in result:
-            new_record = fea.make_row(record)
+        last_record = []
+        for index ,record in enumerate(result):
+            if index>1:
+                last_record = result[index - 1]
+            new_record = fea.make_row(record,last_record)
             if new_record!=None:
                 fw.writelines(new_record)
     fw.close()

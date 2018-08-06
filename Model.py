@@ -8,27 +8,17 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
-
+import metrics as me
 
 class Model:
 
     def __init__(self):
         self.algorithm = ['rf_algorithm','xgboost_algorithm']
-        self.test_size = 0.1
+        self.test_size = 0.3
         self.seed = 10
         self.random_state = 42
         self.label_position = 1
-        rf = RandomForestClassifier(oob_score=False,
-                                               # n_estimators=100,
-                                               max_features='sqrt',
-                                               min_samples_leaf=13,
-                                               min_samples_split=50,
-                                               # max_depth=20,
-                                               random_state=self.random_state,
-                                               n_jobs=-1
-                                               # class_weight={0:3,1:30}
 
-                                               )
 
 
 
@@ -46,7 +36,7 @@ class Model:
             def rf_algorithm( x_train, x_test, y_train, y_test,grid_search):
 
                 rf = RandomForestClassifier(oob_score=False,
-                                                       #n_estimators=100,
+                                                       n_estimators=200,
                                                        max_features='sqrt',
                                                        min_samples_leaf=13,
                                                        min_samples_split=50,
@@ -75,14 +65,17 @@ class Model:
                     return
                 else:
                     rf.fit(x_train, y_train)
-
-                    y_scores = rf.predict(x_test)
-                    y_scores_train = rf.predict(x_train)
+                    print(x_train.head())
+                    y_scores = rf.predict_proba(x_test)[:,1]
+                    y_scores_train = rf.predict_proba(x_train)[:,1]
                     #print('oobscore:', rf.oob_score_)
-                    print('variavle importance:', pd.concat((pd.DataFrame(x_train.iloc[:, :].columns, columns=['variable']),
+                    print('variavle importance:', pd.concat((pd.DataFrame(x_train.columns, columns=['variable']),
                                                      pd.DataFrame(rf.feature_importances_, columns=['importance'])),
                                                     axis=1).sort_values(by='importance', ascending=False)[:50])
 
+                    m = me.Metrics_plot()
+                    m.plot(y_test,[y_scores])
+                    m.plot(y_train,[y_scores_train])
                     #print('test_variance=', explained_variance_score(y_true=y_test, y_pred=y_scores))
                     #print('train_variance=', explained_variance_score(y_true=y_train, y_pred=y_scores_train))
                     #print('MSE', mean_squared_error(y_true=y_test, y_pred=y_scores))
@@ -90,7 +83,7 @@ class Model:
 
                     #print('absolute_error', mean_absolute_error(y_true=y_test, y_pred=y_scores))
                     #print('train_absolute_error=', mean_absolute_error(y_true=y_train, y_pred=y_scores_train))
-                return rf,y_scores
+                return rf,y_scores,y_scores_train,y_test,y_train
 
 
 
@@ -169,12 +162,12 @@ class Model:
                 return
 
             else:
-                x_train, x_test, y_train, y_test = sk.model_selection.train_test_split(new_df_label.iloc[:, 2:],
-                                                                                       new_df_label.iloc[:, 1],
+                x_train, x_test, y_train, y_test = sk.model_selection.train_test_split(new_df_label.iloc[:, 1:],
+                                                                                       new_df_label.iloc[:, 0],
                                                                                        test_size=self.test_size,
                                                                                        random_state=self.random_state)
 
-            return_algorithm, y_scores = eval(algorithm)(x_train, x_test, y_train, y_test, grid_search)
+            return_algorithm, y_scores,y_scores_train,y_test,y_train = eval(algorithm)(x_train, x_test, y_train, y_test, grid_search)
             print(return_algorithm)
 
             return return_algorithm, y_scores
