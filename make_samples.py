@@ -44,10 +44,10 @@ class Fea_process():
         # renturn :0 大于5分钟
         if last_record:
             #print(last_record)
-            last_ex_date, last_ex_station, last_ex_license = str(last_record['N_EX_DATE']) + str(last_record['N_EN_TIME']).zfill(6), str(last_record['N_EX_LANE_ID'])[0:4], \
+            last_ex_date, last_ex_station, last_ex_license = str(last_record['N_EX_DATE']) + str(last_record['N_EX_TIME']).zfill(6), str(last_record['N_EX_LANE_ID'])[0:4], \
                                                              last_record['C_EX_LICENSE']
 
-            if str(record['N_EN_STATION_ID']) == last_ex_station and record['C_CARD_LICENSE'][0:7]==last_ex_license[0:7]:
+            if str(record['N_EN_STATION_ID']) == last_ex_station and record['C_CARD_LICENSE'][0:7]==last_ex_license[0:7] :
                 en_time = str(record['N_EN_DATE']) + str(record['N_EN_TIME']).zfill(6)
                 #ex_time = str(record['N_EX_DATE']) + str(record['N_EX_TIME']).zfill(6)
                 try:
@@ -62,7 +62,7 @@ class Fea_process():
                         print('cost_time<300',record['C_CARD_LICENSE'],last_ex_license,record['N_EN_STATION_ID'],last_ex_station,en_time,last_ex_date,cost_time)
                         return 1
                     else:
-                        print('cost_time >300')
+                        #print('cost_time >300')
                         return 0
                 else:
                     print('cost_time <0',record['C_CARD_LICENSE'],last_ex_license,record['N_EN_STATION_ID'],last_ex_station,en_time,last_ex_date,cost_time)
@@ -71,7 +71,7 @@ class Fea_process():
                 #print('NO TURN AROUND')
                 return 0
         else:
-            return None
+            return 0
 
         # 同一天内或者同一月内,车辆进出次数,放到最后pandas里面去统计出口车牌即可。
         return
@@ -99,7 +99,7 @@ class Fea_process():
             return None
         weight = float(record['D_WEIGHT'])
         fee_lenth =  float(record['D_FEE_LENGTH'])
-        if (fee_lenth<30) & (weight>float(record['D_FARE2'])*0.8):
+        if (fee_lenth<30) & (weight>float(record['D_FARE2'])*0.9):
             #print('over_weight', fee_lenth,weight,record['D_FARE2'])
             return 1
         else:
@@ -115,7 +115,7 @@ class Fea_process():
             return None
         weight = float(record['D_WEIGHT'])
         fee_lenth = float(record['D_FEE_LENGTH'])
-        if (fee_lenth >100 ) & (weight < float(record['D_FARE2']) * 0.3):
+        if (fee_lenth >100 ) & (weight < float(record['D_FARE2']) * 0.5):
             #print('light_weight', fee_lenth,weight,record['D_FARE2'])
             return 1
         else:
@@ -194,6 +194,7 @@ class Fea_process():
 
 
 
+
     def make_row(self,record,last_record):
         record_list = []
         lab = self.label_(record)
@@ -205,14 +206,14 @@ class Fea_process():
             #record_list = list(lab)
             axis_number = self.axis_number_(record)
             over_delay = self.over_delay_(record)
-            #vehicle_class = self.vehicle_class_(record)
+            vehicle_class = self.vehicle_class_(record)
             strange_marks = self.strange_marks_(record)
             lost_marks = self.lost_marks_(record)
             fee_length = self.fee_length_(record)
             weight = self.weight_(record)
             cost_time = self.cost_time_(record)
             speed = self.speed_(cost_time,fee_length)
-            fea_list = [lab,record['C_EN_VEHICLE_CLASS'],record['C_EX_VEHICLE_CLASS'],turn_around,strange_marks,lost_marks,over_weight,light_weight,over_delay,record['axis_number'],
+            fea_list = [lab,vehicle_class,turn_around,strange_marks,lost_marks,over_weight,light_weight,over_delay,axis_number,
                         fee_length,weight,over_weight_original,cost_time,speed]
 
             for fea in fea_list:
@@ -256,7 +257,7 @@ def make_samples():
                     "and a.N_EX_DATE >= a.N_EN_DATE " \
                     "and a.C_EX_LICENSE regexp '^[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新台港澳]{{1}}[A-Z]{{1}}.*$' " \
                     "and a.C_CARD_LICENSE regexp '^[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新台港澳]{{1}}[A-Z]{{1}}.*$' " \
-                    "ORDER  by a.C_CARD_LICENSE,a.N_EN_TIME " \
+                    "ORDER  by a.C_CARD_LICENSE, a.N_EN_DATE,a.N_EN_TIME ASC " \
                     "{limit}".format(start_date=date,end_date=date,start_date1=date,end_date1=date,
 
                                      columns='a.N_EN_DATE,a.N_EN_TIME,a.N_EN_STATION_ID,a.C_EN_VEHICLE_CLASS,a.N_EX_DATE,a.N_EX_TIME,'\
