@@ -14,7 +14,7 @@ class Model:
 
     def __init__(self):
         self.algorithm = ['rf_algorithm','xgboost_algorithm']
-        self.test_size = 0.3
+        self.test_size = 0.1
         self.seed = 10
         self.random_state = 42
         self.label_position = 1

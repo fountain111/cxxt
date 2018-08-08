@@ -22,11 +22,11 @@ class Fea_process():
                         same_pos +=1
                 if same_pos == 4:
                     #print(en_licnese,ex_license)
-                    return 0,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
+                    return 0,record['C_CARD_LICENSE'][0:10],record['C_EX_LICENSE'][0:10]
 
-            return 1,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
+            return 1,record['C_CARD_LICENSE'][0:10],record['C_EX_LICENSE'][0:10]
 
-        return 0,record['C_CARD_LICENSE'],record['C_EX_LICENSE']
+        return 0,record['C_CARD_LICENSE'][0:10],record['C_EX_LICENSE'][0:10]
 
     def axis_number_(self,record):
         #轴载类型
@@ -202,17 +202,19 @@ class Fea_process():
         over_weight = self.over_weight_(record)
         light_weight = self.light_weight_(record)
         over_weight_original = self.over_weight_original_(record)
-        if (lab!=None and turn_around!=None and over_weight!=None and light_weight!=None and over_weight_original!=None):
+        cost_time = self.cost_time_(record)
+        fee_length = self.fee_length_(record)
+
+        speed = self.speed_(cost_time, fee_length)
+
+        if (lab!=None and turn_around!=None and over_weight!=None and light_weight!=None and over_weight_original!=None and cost_time!=None and speed!=None):
             #record_list = list(lab)
             axis_number = self.axis_number_(record)
             over_delay = self.over_delay_(record)
             vehicle_class = self.vehicle_class_(record)
             strange_marks = self.strange_marks_(record)
             lost_marks = self.lost_marks_(record)
-            fee_length = self.fee_length_(record)
             weight = self.weight_(record)
-            cost_time = self.cost_time_(record)
-            speed = self.speed_(cost_time,fee_length)
             fea_list = [lab,vehicle_class,turn_around,strange_marks,lost_marks,over_weight,light_weight,over_delay,axis_number,
                         fee_length,weight,over_weight_original,cost_time,speed]
 
@@ -266,7 +268,7 @@ def make_samples():
                                              'a.D_FARE2,a.VC_MARKS,a.VC_FIX_MARKS,b.C_EN_VEHICLE_CLASS,c.axis_number',
 
 
-                                     limit = 'limit 1000'
+                                     limit = ''
                                      )
 
         print(sql_exit)
