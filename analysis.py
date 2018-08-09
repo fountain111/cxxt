@@ -5,8 +5,8 @@ import numpy as np
 class Analysis_pandas():
 
     def __init__(self):
-        self.column_dict = {'ex':0.2,'lost_marks':0.20242468772961059,'strange_marks':0.0091176274129984632,'turn_around':0.0061452140805557413}
-        self.prob_license = 0.2 #重新测定
+        self.column_dict = {'lab':0.2,'lost_marks':0.20242468772961059,'strange_marks':0.0091176274129984632,'turn_around':0.0061452140805557413}
+        self.prob_license = 0.26028 #重新测定
         self.prob_lost_marks= 0.20242468772961059
         self.prob_strange_marks = 0.0091176274129984632
         self.prob_turn_around = 0.0061452140805557413 # 重新测定
@@ -19,7 +19,7 @@ class Analysis_pandas():
         else:
             count = 0
         df1['prob'] = df1[column].apply(lambda x:np.power(p,x) if x>count else 1)
-        df1['scores'] = df1['prob'].apply(lambda x: x * 350+300)
+        df1['scores'] = df1['prob'].apply(lambda x: np.float64(x * 350 +np.float64(300)))
 
         return df1
 

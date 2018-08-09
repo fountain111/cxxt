@@ -139,11 +139,13 @@ class Fea_process():
 
     def strange_marks_(self,record):
         #卡内标志站与应记录标识站（系统自动规划出的标识站）不一致，通常为卡内标识站出现不应出现的应记录标识站点记录
+
+        if record['VC_FIX_MARKS'] == None:
+            return 0
         if record['VC_MARKS'] == None:
             return 0
 
-        if record['VC_FIX_MARKS'] == None:
-            return 1
+
         vc_marks = list(record['VC_MARKS'])
         vc_fix_marks = list(record['VC_FIX_MARKS'])
         #print(vc_marks)
@@ -156,11 +158,11 @@ class Fea_process():
 
     def lost_marks_(self,record):
         #卡内标志站与应记录标识站不一致（三个或三个以上），通常为卡内标识站只缺失应出现的标识站点记录。即经过标志站但卡中无标志站
-        if record['VC_MARKS'] == None:
-            return 1
-
         if record['VC_FIX_MARKS'] == None:
             return 0
+        if record['VC_MARKS'] == None:
+            return 0
+
         i = 0
         vc_marks = list(record['VC_MARKS'])
         vc_fix_marks = list(record['VC_FIX_MARKS'])
@@ -233,7 +235,7 @@ class Fea_process():
     #def turn_around(self,record):
 
 def make_samples():
-    data_list = [ '2018060'+str(i) if i<10 else '201806'+str(i) for i in range(1,31)]
+    data_list = [ '2018070'+str(i) if i<10 else '201807'+str(i) for i in range(1,32)]
     con_exit = pymysql.Connect(host='12.1.150.35',user='user',
                           password='user',db='cico',port=8066,
                           cursorclass= pymysql.cursors.SSDictCursor,
