@@ -10,6 +10,7 @@ class Analysis_pandas():
         self.prob_lost_marks= 0.20242468772961059
         self.prob_strange_marks = 0.0091176274129984632
         self.prob_turn_around = 0.0061452140805557413 # 重新测定
+        self.exp_factor =-0.09
 
     def prob_diff(self,df,column,p):
         grouped = df.groupby('ex')[column].sum()
@@ -19,7 +20,7 @@ class Analysis_pandas():
         else:
             count = 0
         df1['prob'] = df1[column].apply(lambda x:np.power(p,x) if x>count else 1)
-        df1['scores'] = df1['prob'].apply(lambda x: np.float64(x * 350 +np.float64(300)))
+        df1['scores'] = df1[column].apply(lambda x: 350*np.exp(self.exp_factor*x)+300)
 
         return df1
 

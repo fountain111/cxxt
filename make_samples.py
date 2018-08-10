@@ -87,6 +87,8 @@ class Fea_process():
         except:
             print('turn_around error ', ValueError)
             return None
+        if cost_time <=0:
+            return None
 
         return cost_time
 
